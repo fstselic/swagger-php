@@ -28,6 +28,7 @@ class InheritPropertiesTest extends SwaggerTestCase
             new AugmentProperties()
         ]);
         $schemas = $analysis->getAnnotationsOfType(Schema::class);
+        var_dump($schemas); die;
         $childSchema = $schemas[0];
         $this->assertSame('Child', $childSchema->schema);
         $this->assertCount(1, $childSchema->properties);
@@ -64,6 +65,36 @@ class InheritPropertiesTest extends SwaggerTestCase
         // no error occurs
         $analysis->process(new InheritProperties());
         $this->assertCount(1, $childSchema->properties);
+
+        $analysis->openapi->info = new Info(['title' => 'test', 'version' => 1]);
+        $analysis->validate();
+    }
+
+    /**
+     * Tests, if all properties are processed correctly when a class inherits from another class
+     * and both have OAS\Schema applied.
+     */
+    public function testInheritPropertiesFromClassWithOwnSchema()
+    {
+        $analyser = new StaticAnalyser();
+
+        // this class has docblocks
+        $analysis = $analyser->fromFile(__DIR__ . '/Fixtures/InheritBaseSchema.php');
+
+        $analysis->process([
+            new MergeIntoOpenApi(),
+            new AugmentSchemas(),
+            new AugmentProperties()
+        ]);
+        $schemas = $analysis->getAnnotationsOfType(Schema::class);
+        $childSchema = $schemas[0];
+        $this->assertSame('InheritBaseSchema', $childSchema->schema);
+        $this->assertCount(1, $childSchema->properties);
+
+        // no error occurs
+        $analysis->process(new InheritProperties());
+        // assert that the property from base schema is correctly merged into inherited class
+        $this->assertCount(2, $childSchema->properties);
 
         $analysis->openapi->info = new Info(['title' => 'test', 'version' => 1]);
         $analysis->validate();
